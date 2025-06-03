@@ -4,7 +4,9 @@ import com.sky.constant.JwtClaimsConstant;
 import com.sky.dto.EmployeeDTO;
 import com.sky.dto.EmployeeLoginDTO;
 import com.sky.dto.EmployeePageQueryDTO;
+import com.sky.dto.PasswordEditDTO;
 import com.sky.entity.Employee;
+import com.sky.mapper.EmployeeMapper;
 import com.sky.properties.JwtProperties;
 import com.sky.result.PageResult;
 import com.sky.result.Result;
@@ -31,6 +33,8 @@ public class EmployeeController {
     private EmployeeService employeeService;
     @Autowired
     private JwtProperties jwtProperties;
+    @Autowired
+    private EmployeeMapper employeeMapper;
 
     /**
      * 登录
@@ -73,12 +77,12 @@ public class EmployeeController {
     }
 
 
-//    新增员工
+    //    新增员工
     @PostMapping
     public Result<String> addEmployee(@RequestBody Employee employee) {
         int affectedRows = employeeService.addEmployee(employee);
         log.info("<UNK>{}", employee);
-        if(affectedRows>0){
+        if (affectedRows > 0) {
 
             return Result.success();
         }
@@ -89,7 +93,7 @@ public class EmployeeController {
 
     //分页查询
     @GetMapping("/page")
-    public Result<PageResult> QueryEmployee(EmployeePageQueryDTO employeePageQueryDTO){
+    public Result<PageResult> QueryEmployee(EmployeePageQueryDTO employeePageQueryDTO) {
         log.info("<UNK>{}", employeePageQueryDTO);
         // 返回值是总数和10条员工数据，封装在PageResult，ResturnPageResult
         PageResult pageResult = employeeService.QueryEmployee(employeePageQueryDTO);
@@ -98,9 +102,47 @@ public class EmployeeController {
 
     }
 
+    //启用禁用员工账号
+    @PostMapping("/status/{status}")
+    @ApiOperation("启用禁用员工账号")
+    public Result employeePower(@PathVariable int status, Long id) {
+        employeeService.employeePower(status, id);
+        return Result.success("您的修改成功了");
+    }
+
+    //编辑员工信息,两个请求
+    @GetMapping("/{id}")
+    @ApiOperation("显示要修改的原始信息")
+    public Result<Employee> selectEmployee(@PathVariable Long id) {
+        log.info("<UNK>{传进来的Id是}", id);
+        Employee employee = employeeService.selectEmployeeById(id);
+
+        return Result.success(employee);
+    }
 
 
+    @PutMapping
+    @ApiOperation("修改员工信息")
+    public Result updateEmployee(@RequestBody EmployeeDTO employeeDTO) {
+        employeeService.updateEmployee(employeeDTO);
+
+        return Result.success();
+    }
 
 
-
+    //修改密码
+    @PutMapping("/editPassword")
+    @ApiOperation("修改密码")
+    public Result editPassword(@RequestBody PasswordEditDTO passwordEditDTO) {
+        boolean success = employeeService.changePassword(passwordEditDTO);
+        if (!success) {
+            return Result.error("原密码不正确");
+        }
+        return Result.success("密码修改成功");
+    }
 }
+
+
+
+
+

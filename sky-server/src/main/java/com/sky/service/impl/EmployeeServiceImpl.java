@@ -9,14 +9,15 @@ import com.sky.context.BaseContext;
 import com.sky.dto.EmployeeDTO;
 import com.sky.dto.EmployeeLoginDTO;
 import com.sky.dto.EmployeePageQueryDTO;
+import com.sky.dto.PasswordEditDTO;
 import com.sky.entity.Employee;
 import com.sky.exception.AccountLockedException;
 import com.sky.exception.AccountNotFoundException;
 import com.sky.exception.PasswordErrorException;
 import com.sky.mapper.EmployeeMapper;
 import com.sky.result.PageResult;
-import com.sky.result.Result;
 import com.sky.service.EmployeeService;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
@@ -79,8 +80,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         employee.setCreateTime(LocalDateTime.now());
         employee.setUpdateTime(LocalDateTime.now());
 
-// 设置当前记录创建人id和修改人id
-// TODO 后期需要改为当前登录用户的id
+// 设置当前记录创建人id和修改人i
         employee.setCreateUser(BaseContext.getCurrentId());
         employee.setUpdateUser(BaseContext.getCurrentId());
         return employeeMapper.addEmployee(employee);
@@ -96,6 +96,64 @@ public class EmployeeServiceImpl implements EmployeeService {
         return new PageResult(total,records);
 
     }
+
+
+
+    /**
+     * 启用禁止员工账号
+     */
+    @Override
+    public void employeePower(int status, Long id) {
+        Employee employee = Employee.builder()
+                .id(id)
+                .status(status)
+                .build();
+        employeeMapper.update(employee);
+    }
+
+
+
+    @Override
+    public void updateEmployee(EmployeeDTO employeeDTO) {
+        Employee employee = new Employee();
+        BeanUtils.copyProperties(employeeDTO, employee);
+        employee.setUpdateTime(LocalDateTime.now());
+
+        employee.setUpdateUser(BaseContext.getCurrentId());
+
+        employeeMapper.update(employee);
+    }
+
+    /**
+     * 显示要修改的原始信息，根据Id查询
+     * @return
+     */
+
+    @Override
+    public Employee selectEmployeeById(Long id) {
+        return employeeMapper.selectEmployeeById(id);
+    }
+
+    @Override
+    public boolean changePassword(PasswordEditDTO passwordEditDTO) {
+        String storedPassword = employeeMapper.getPasswordById(BaseContext.getCurrentId());
+        System.out.printf("存储的密码是");
+
+        // 对用户输入的旧密码进行 MD5 加密
+        String encodedOldPass = DigestUtils.md5DigestAsHex(passwordEditDTO.getOldPassword().getBytes());
+
+        // 校验原始密码是否正确
+        if (!storedPassword.equals(encodedOldPass)) {
+            return false;
+        }
+
+        // 加密新密码并更新
+        String encodedNewPass = DigestUtils.md5DigestAsHex(passwordEditDTO.getNewPassword().getBytes());
+        employeeMapper.updatePassword(BaseContext.getCurrentId(), encodedNewPass);
+
+        return true;
+    }
+
 
 
 }
